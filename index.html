@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rancho Açaí · Controle de Sorvetes</title>
+    <!-- Fonte Inter e ícones -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Biblioteca jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f3e8ff 0%, #faf5ff 100%);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+            color: #2c2c2c;
+        }
+
+        .container {
+            max-width: 1300px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 36px;
+            box-shadow: 0 20px 40px -12px rgba(106, 13, 173, 0.25);
+            padding: 2.2rem 2.5rem;
+            border: 1px solid #d4b5ff;
+        }
+
+        /* cabeçalho */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 2px dashed #ffd700;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .header i {
+            font-size: 2.4rem;
+            color: #6a0dad;
+            background: #f0e6ff;
+            padding: 12px;
+            border-radius: 60px;
+        }
+        .header h1 {
+            font-weight: 600;
+            font-size: 1.9rem;
+            letter-spacing: -0.02em;
+            color: #4b0082;
+        }
+        .header .badge {
+            margin-left: auto;
+            background: #ffd700;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #4b0082;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sub-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            color: #5a2d8c;
+            font-weight: 500;
+            background: #f2e6ff;
+            padding: 0.9rem 1.5rem;
+            border-radius: 60px;
+            font-size: 0.98rem;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .grid-sabores {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-sabor {
+            background: #fcf9ff;
+            border: 1px solid #d4b5ff;
+            border-radius: 28px;
+            padding: 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            transition: all 0.15s;
+        }
+        .card-sabor:hover {
+            border-color: #ffd700;
+            box-shadow: 0 8px 14px -10px #b8860b;
+        }
+
+        .sabor-nome {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #4b0082;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sabor-nome i {
+            color: #6a0dad;
+            font-size: 1.2rem;
+        }
+
+        .controles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        .controles input {
+            width: 80px;
+            padding: 0.5rem;
+            border: 1px solid #d4b5ff;
+            border-radius: 20px;
+            font-size: 1rem;
+            text-align: center;
+            background: #ffffff;
+        }
+        .status-group {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .status-btn {
+            background: #f2e6ff;
+            border: 1px solid #d4b5ff;
+            border-radius: 30px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .status-btn.selected {
+            background: #6a0dad;
+            border-color: #4b0082;
+            color: white;
+        }
+        .status-btn.selected i {
+            color: white;
+        }
+        .status-btn i {
+            color: #6a0dad;
+        }
+
+        /* barra de ações */
+        .acoes {
+            background: #ffd700;
+            border-radius: 30px;
+            padding: 1.5rem 2rem;
+            margin-top: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border: 1px solid #b8860b;
+        }
+        .totais {
+            display: flex;
+            gap: 1rem;
+            background: #4b0082;
+            color: #ffd700;
+            border-radius: 50px;
+            padding: 0.6rem 1.8rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            align-items: center;
+        }
+        .botoes {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #6a0dad;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.9rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #4b0082;
+            box-shadow: 0 5px 0 #2e0057;
+            transform: translateY(0);
+        }
+        .btn:active {
+            box-shadow: 0 1px 0 #2e0057;
+            transform: translateY(4px);
+        }
+        .btn-pdf {
+            background: #b8860b;
+            border-color: #8f6f2f;
+            box-shadow: 0 5px 0 #5f4a20;
+        }
+
+        .relatorio-area {
+            margin-top: 2rem;
+            background: #fcf9ff;
+            border-radius: 24px;
+            padding: 1.5rem 2rem;
+            border: 2px solid #d4b5ff;
+        }
+        .relatorio-area h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #4b0082;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            border-bottom: 1px dotted #ffd700;
+            padding-bottom: 0.5rem;
+        }
+        #relatorioTexto {
+            background: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: 18px;
+            color: #2c2c2c;
+            line-height: 1.7;
+            white-space: pre-line;
+            border: 1px solid #d4b5ff;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .footer {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #6a0dad;
+            text-align: right;
+        }
+
+        @media (max-width: 700px) {
+            .container { padding: 1.5rem; }
+            .header h1 { font-size: 1.5rem; }
+            .badge { margin-left: 0; width: 100%; justify-content: center; }
+            .botoes { justify-content: center; width: 100%; }
+            .acoes { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- cabeçalho -->
+    <div class="header">
+        <i class="fas fa-ice-cream"></i>
+        <h1>Rancho Açaí · Controle de Sorvetes</h1>
+        <div class="badge">
+            <i class="far fa-calendar-alt"></i> <span id="dataAtual"></span>
+        </div>
+    </div>
+
+    <div class="sub-info">
+        <span><i class="far fa-clock"></i> Conferência diária de estoque</span>
+        <span><i class="fas fa-sync-alt"></i> Dados salvos automaticamente</span>
+    </div>
+
+    <!-- Lista de sabores será gerada pelo JavaScript -->
+    <div id="saboresContainer" class="grid-sabores"></div>
+
+    <!-- Barra de ações e totais -->
+    <div class="acoes">
+        <div class="totais">
+            <i class="fas fa-boxes"></i>
+            <span id="totalSabores">25</span> sabores |
+            <span id="acabados">0</span> acabados
+        </div>
+        <div class="botoes">
+            <button class="btn" id="salvarBtn"><i class="fas fa-save"></i> SALVAR</button>
+            <button class="btn btn-pdf" id="pdfBtn"><i class="fas fa-file-pdf"></i> GERAR PDF</button>
+        </div>
+    </div>
+
+    <!-- Relatório gerado (visível) -->
+    <div class="relatorio-area" id="relatorioArea">
+        <h3><i class="fas fa-clipboard-list"></i> Relatório de Conferência</h3>
+        <div id="relatorioTexto">
+            <i class="fas fa-chevron-circle-right"></i> Preencha as quantidades e status. Clique em GERAR PDF para obter o relatório completo.
+        </div>
+        <div class="footer" id="assinatura"></div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Lista completa de sabores (25 itens)
+        const sabores = [
+            "Chocolate",
+            "Leite condensado",
+            "Caraxi",
+            "Frutas tropicais",
+            "Morango premium",
+            "Crocante",
+            "Sensação",
+            "Ninho trufado",
+            "Blue ice",
+            "Uva",
+            "Maracujá",
+            "Coco queimado",
+            "Milho verde",
+            "Creme",
+            "Goiaba",
+            "Abacate",
+            "Abacaxi ao vinho",
+            "Ferrero Rocher",
+            "Coco",
+            "Chocolate branco",
+            "Flocos",
+            "Nutella",
+            "Iogurte grego",
+            "Polpa de açaí zero açúcar",
+            "Açaí normal"
+        ];
+
+        // Elementos principais
+        const container = document.getElementById('saboresContainer');
+        const dataSpan = document.getElementById('dataAtual');
+        const acabadosSpan = document.getElementById('acabados');
+        const salvarBtn = document.getElementById('salvarBtn');
+        const pdfBtn = document.getElementById('pdfBtn');
+        const relatorioTexto = document.getElementById('relatorioTexto');
+        const assinatura = document.getElementById('assinatura');
+
+        // Carrega dados do localStorage ou inicializa
+        let dados = JSON.parse(localStorage.getItem('ranchoAcaiSorvetes')) || {};
+
+        // Atualiza data
+        function atualizarData() {
+            const d = new Date();
+            const dias = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+            const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+            dataSpan.textContent = `${dias[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]} ${d.getFullYear()}`;
+            assinatura.innerHTML = `<i class="fas fa-signature"></i> conferência: ${dias[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+        }
+        atualizarData();
+
+        // Renderiza os cards
+        function renderizar() {
+            container.innerHTML = '';
+            sabores.forEach((sabor, index) => {
+                const id = `sabor_${index}`;
+                const saved = dados[id] || { quantidade: 0, status: 'tem' }; // padrão: tem
+
+                const card = document.createElement('div');
+                card.className = 'card-sabor';
+                card.innerHTML = `
+                    <div class="sabor-nome">
+                        <i class="fas fa-ice-cream"></i> ${sabor}
+                    </div>
+                    <div class="controles">
+                        <input type="number" min="0" value="${saved.quantidade}" id="qtd_${id}" placeholder="Qtd">
+                        <div class="status-group" id="status_${id}">
+                            <div class="status-btn ${saved.status === 'tem' ? 'selected' : ''}" data-status="tem"><i class="fas fa-check-circle"></i> Tem</div>
+                            <div class="status-btn ${saved.status === 'metade' ? 'selected' : ''}" data-status="metade"><i class="fas fa-adjust"></i> Metade</div>
+                            <div class="status-btn ${saved.status === 'acabou' ? 'selected' : ''}" data-status="acabou"><i class="fas fa-times-circle"></i> Acabou</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                // Eventos para os botões de status
+                const statusDiv = document.getElementById(`status_${id}`);
+                statusDiv.querySelectorAll('.status-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        statusDiv.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected'));
+                        this.classList.add('selected');
+                        salvarDados(); // auto-save ao mudar status
+                    });
+                });
+
+                // Evento para input de quantidade
+                const inputQtd = document.getElementById(`qtd_${id}`);
+                inputQtd.addEventListener('input', function() {
+                    salvarDados();
+                });
+            });
+
+            // Atualiza contador de acabados
+            atualizarAcabados();
+        }
+
+        // Salva dados no localStorage
+        function salvarDados() {
+            sabores.forEach((_, index) => {
+                const id = `sabor_${index}`;
+                const input = document.getElementById(`qtd_${id}`);
+                const statusDiv = document.getElementById(`status_${id}`);
+                if (!input || !statusDiv) return;
+
+                const quantidade = parseInt(input.value) || 0;
+                let status = 'tem';
+                const selected = statusDiv.querySelector('.status-btn.selected');
+                if (selected) {
+                    status = selected.dataset.status;
+                }
+
+                dados[id] = { quantidade, status };
+            });
+
+            localStorage.setItem('ranchoAcaiSorvetes', JSON.stringify(dados));
+            atualizarAcabados();
+        }
+
+        // Atualiza o contador de sabores "acabou"
+        function atualizarAcabados() {
+            let count = 0;
+            sabores.forEach((_, index) => {
+                const id = `sabor_${index}`;
+                const saved = dados[id];
+                if (saved && saved.status === 'acabou') count++;
+            });
+            acabadosSpan.textContent = count;
+        }
+
+        // Gerar relatório detalhado
+        function gerarRelatorio() {
+            let linhas = [];
+            let totalGeral = 0;
+            sabores.forEach((sabor, index) => {
+                const id = `sabor_${index}`;
+                const saved = dados[id] || { quantidade: 0, status: 'tem' };
+                const qtd = saved.quantidade;
+                const status = saved.status;
+                let statusTexto = '';
+                if (status === 'tem') statusTexto = '✅ Tem';
+                else if (status === 'metade') statusTexto = '⏳ Na metade';
+                else statusTexto = '❌ Acabou';
+                linhas.push(`${sabor}: ${qtd} unid. - ${statusTexto}`);
+                totalGeral += qtd;
+            });
+
+            const data = new Date();
+            const dataStr = data.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            let relatorio = `🍨 RANCHO AÇAÍ · RELATÓRIO DE SORVETES\n`;
+            relatorio += `📅 ${dataStr}  |  ${hora}\n`;
+            relatorio += `────────────────────────────\n`;
+            linhas.forEach(l => relatorio += `${l}\n`);
+            relatorio += `────────────────────────────\n`;
+            relatorio += `📦 Total de unidades: ${totalGeral}\n`;
+            relatorio += `🚫 Sabores acabados: ${acabadosSpan.textContent}\n`;
+            relatorio += `✨ Conferência finalizada.\n`;
+
+            return relatorio;
+        }
+
+        // Exibe relatório no HTML
+        function exibirRelatorio() {
+            const texto = gerarRelatorio();
+            const html = texto.replace(/\n/g, '<br>')
+                .replace(/✅/g, '<i class="fa-regular fa-circle-check" style="color:#4b0082;"></i>')
+                .replace(/⏳/g, '<i class="fa-regular fa-clock" style="color:#b8860b;"></i>')
+                .replace(/❌/g, '<i class="fa-regular fa-circle-xmark" style="color:#a7794b;"></i>')
+                .replace(/🍨/g, '<i class="fas fa-ice-cream"></i>')
+                .replace(/📦/g, '<i class="fas fa-box"></i>')
+                .replace(/🚫/g, '<i class="fas fa-ban" style="color:#a7794b;"></i>');
+            relatorioTexto.innerHTML = html;
+        }
+
+        // Gerar PDF
+        function gerarPDF() {
+            // Atualiza dados e relatório
+            salvarDados();
+            exibirRelatorio();
+
+            const area = document.getElementById('relatorioArea');
+
+            html2canvas(area, {
+                scale: 2,
+                backgroundColor: '#fcf9ff',
+                logging: false
+            }).then((canvas) => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: [canvas.width * 0.75, canvas.height * 0.75]
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const ratio = canvas.width / canvas.height;
+                let imgWidth = pageWidth;
+                let imgHeight = pageWidth / ratio;
+
+                if (imgHeight > pageHeight) {
+                    imgHeight = pageHeight;
+                    imgWidth = pageHeight * ratio;
+                }
+
+                const xOffset = (pageWidth - imgWidth) / 2;
+                const yOffset = (pageHeight - imgHeight) / 2;
+
+                pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
+                const dataArquivo = new Date().toISOString().slice(0,10);
+                pdf.save(`RanchoAcai_Sorvetes_${dataArquivo}.pdf`);
+            }).catch(error => {
+                console.error('Erro ao gerar PDF:', error);
+                alert('Erro ao gerar PDF. Tente novamente.');
+            });
+        }
+
+        // Eventos
+        salvarBtn.addEventListener('click', () => {
+            salvarDados();
+            exibirRelatorio();
+            alert('Dados salvos com sucesso!');
+        });
+
+        pdfBtn.addEventListener('click', gerarPDF);
+
+        // Inicialização
+        renderizar();
+        exibirRelatorio();
+
+        // Auto-save em mudanças (já é feito pelos eventos, mas chamamos uma vez)
+        window.addEventListener('beforeunload', function() {
+            salvarDados();
+        });
+
+    })();
+</script>
+</body>
+</html>
