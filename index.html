@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Biblioteca jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -491,46 +490,132 @@
 
         // Gerar PDF
         function gerarPDF() {
-            // Atualiza dados e relatório
-            salvarDados();
-            exibirRelatorio();
+            salvarDados(); // Garante que os dados mais recentes estão salvos
 
-            const area = document.getElementById('relatorioArea');
-
-            html2canvas(area, {
-                scale: 2,
-                backgroundColor: '#fcf9ff',
-                logging: false
-            }).then((canvas) => {
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'px',
-                    format: [canvas.width * 0.75, canvas.height * 0.75]
-                });
-
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const ratio = canvas.width / canvas.height;
-                let imgWidth = pageWidth;
-                let imgHeight = pageWidth / ratio;
-
-                if (imgHeight > pageHeight) {
-                    imgHeight = pageHeight;
-                    imgWidth = pageHeight * ratio;
-                }
-
-                const xOffset = (pageWidth - imgWidth) / 2;
-                const yOffset = (pageHeight - imgHeight) / 2;
-
-                pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
-                const dataArquivo = new Date().toISOString().slice(0,10);
-                pdf.save(`RanchoAcai_Sorvetes_${dataArquivo}.pdf`);
-            }).catch(error => {
-                console.error('Erro ao gerar PDF:', error);
-                alert('Erro ao gerar PDF. Tente novamente.');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'a4'
             });
+
+            const data = new Date();
+            const dataStr = data.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' });
+            const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            let totalGeral = 0;
+            const acabadosLista = [];
+            const disponiveisLista = [];
+
+            sabores.forEach((sabor, index) => {
+                const id = `sabor_${index}`;
+                const saved = dados[id] || { quantidade: 0, status: 'tem' };
+                totalGeral += saved.quantidade;
+
+                const item = { nome: sabor, qtd: saved.quantidade, status: saved.status };
+
+                if (saved.status === 'acabou') {
+                    acabadosLista.push(item);
+                } else {
+                    disponiveisLista.push(item);
+                }
+            });
+
+            // --- Início da construção do PDF ---
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 40;
+            let cursorY = margin;
+
+            // Cabeçalho
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(20);
+            pdf.setTextColor('#4b0082'); // Roxo escuro
+            pdf.text('Rancho Açaí · Relatório de Sorvetes', pageWidth / 2, cursorY, { align: 'center' });
+            cursorY += 25;
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(11);
+            pdf.setTextColor('#2c2c2c'); // Cinza escuro
+            pdf.text(`${dataStr} - ${hora}`, pageWidth / 2, cursorY, { align: 'center' });
+            cursorY += 30;
+
+            const drawLine = (y) => {
+                pdf.setDrawColor('#ffd700'); // Dourado
+                pdf.setLineWidth(1.5);
+                pdf.line(margin, y, pageWidth - margin, y);
+            };
+
+            drawLine(cursorY);
+            cursorY += 20;
+
+            const checkPageBreak = (spaceNeeded = 0) => {
+                if (cursorY + spaceNeeded > pageHeight - margin) {
+                    pdf.addPage();
+                    cursorY = margin;
+                }
+            };
+
+            // Seção: Sabores Disponíveis
+            if (disponiveisLista.length > 0) {
+                checkPageBreak(40);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(14);
+                pdf.setTextColor('#6a0dad'); // Roxo
+                pdf.text('Sabores Disponíveis', margin, cursorY);
+                cursorY += 20;
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.setTextColor('#2c2c2c');
+                disponiveisLista.forEach(item => {
+                    checkPageBreak(15);
+                    const statusTexto = item.status === 'tem' ? '(Em estoque)' : '(Na metade)';
+                    pdf.text(`${item.nome}: ${item.qtd} unid. ${statusTexto}`, margin, cursorY);
+                    cursorY += 15;
+                });
+                cursorY += 15;
+            }
+
+            // Seção: Sabores em Falta
+            if (acabadosLista.length > 0) {
+                checkPageBreak(40);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(14);
+                pdf.setTextColor('#b8860b'); // Dourado escuro
+                pdf.text('Sabores em Falta (Acabados)', margin, cursorY);
+                cursorY += 20;
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.setTextColor('#2c2c2c');
+                acabadosLista.forEach(item => {
+                    checkPageBreak(15);
+                    pdf.text(`- ${item.nome}`, margin, cursorY);
+                    cursorY += 15;
+                });
+                cursorY += 15;
+            }
+
+            // Rodapé com Resumo
+            checkPageBreak(80);
+            drawLine(cursorY);
+            cursorY += 25;
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(12);
+            pdf.setTextColor('#4b0082');
+            pdf.text('Resumo do Estoque:', margin, cursorY);
+            cursorY += 20;
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(11);
+            pdf.setTextColor('#2c2c2c');
+            pdf.text(`Total de unidades em estoque: ${totalGeral}`, margin, cursorY);
+            cursorY += 18;
+            pdf.text(`Sabores disponíveis: ${disponiveisLista.length}`, margin, cursorY);
+            cursorY += 18;
+            pdf.text(`Sabores acabados: ${acabadosLista.length}`, margin, cursorY);
+
+            // Salvar o PDF
+            const dataArquivo = new Date().toISOString().slice(0, 10);
+            pdf.save(`Relatorio_Sorvetes_RanchoAcai_${dataArquivo}.pdf`);
         }
 
         // Eventos
